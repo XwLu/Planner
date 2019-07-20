@@ -11,6 +11,7 @@
 
 #include "common.h"
 #include "trajectory.h"
+#include "obstacle.h"
 
 class Visualize{
 public:
@@ -19,10 +20,15 @@ public:
 
   void ShowTrajectory(const vector<TrajectoryPoint>& trajectory);
 
+  void ShowObstacles(const vector<Obstacle>& obstacles);
+
 private:
   ros::NodeHandle* pnh_;
   ros::Publisher pub_trajectory_;
+  ros::Publisher pub_obstacles_;
+
   std::string topic_trajectory_vis_;
+  std::string topic_obstacles_vis_;
 };
 
 #endif //PLANNER_VISUALIZE_H

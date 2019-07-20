@@ -47,6 +47,7 @@ int main(int argc, char** argv){
     ros::spinOnce();
     planner.Run();
     vis.ShowTrajectory(planner.trajectory());
+    vis.ShowObstacles(obstacles);
     loop_rate.sleep();
   }
   cout<<"Program Done!"<<endl;

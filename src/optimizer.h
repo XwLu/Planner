@@ -75,20 +75,22 @@ class Point2ObstacleEdge : public g2o::BaseUnaryEdge<1, double, PointVertex> {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  Point2ObstacleEdge(Eigen::Vector2d obs) : BaseUnaryEdge(), _obs(obs) {}
+  Point2ObstacleEdge(Eigen::Vector2d obs) : BaseUnaryEdge(), _obs(obs) {
+    w = 1.0;
+  }
 
   // 计算曲线模型误差
   virtual void computeError() override {
     const PointVertex *v = static_cast<const PointVertex *> (_vertices[0]);
     const double l = v->estimate();
-    _error(0, 0) = 2 * l * l - (_obs[1] - l) * (_obs[1] - l);
+    _error(0, 0) = l * l + 1 / (1 + exp(w * ((l - _obs[1])*(l - _obs[1]) - 1.5*1.5)));
   }
 
   // 计算雅可比矩阵
   virtual void linearizeOplus() override {
     const PointVertex *v = static_cast<const PointVertex *> (_vertices[0]);
     const double l = v->estimate();
-    _jacobianOplusXi[0] = 2 * _obs[1] + 2 * l;
+    _jacobianOplusXi[0] = 2*l-1/pow(1+exp(w*(l*l-2.25)), 2.0)*exp(w*(l*l-2.25))*2*l;
   }
 
   virtual bool read(istream &in) {}
@@ -97,4 +99,5 @@ public:
 
 public:
   Eigen::Vector2d _obs;  // x 值， y 值为 _measurement
+  double w;
 };
