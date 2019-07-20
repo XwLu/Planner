@@ -45,14 +45,15 @@ class Point2PointEdge : public g2o::BaseBinaryEdge<1, double, PointVertex, Point
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  Point2PointEdge(){};
+  Point2PointEdge() : BaseBinaryEdge() {};
 
   // 计算误差
   virtual void computeError() override {
     const PointVertex* v1 = static_cast<PointVertex*>(_vertices[0]);
     const PointVertex* v2 = static_cast<PointVertex*>(_vertices[1]);
-    double err = v1->estimate() - v2->estimate();
-    _error(0, 0) = err * err;
+    double l1 = v1->estimate();
+    double l2 = v2->estimate();
+    _error(0, 0) = _measurement - 1*(l1 - l2);
   }
 
   //计算雅可比矩阵
@@ -61,8 +62,8 @@ public:
     PointVertex* v2 = static_cast<PointVertex*>(_vertices[1]);
     double l1 = v1->estimate();
     double l2 = v2->estimate();
-    _jacobianOplusXi[0, 0] = 2 * (l1 - l2);
-    _jacobianOplusXi[1, 0] = 2 * (l2 - l1);
+    _jacobianOplusXi(0, 0) = -1;
+    _jacobianOplusXi(1, 0) = +1;
   }
 
   virtual bool read(istream &in) {}
@@ -76,21 +77,20 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   Point2ObstacleEdge(Eigen::Vector2d obs) : BaseUnaryEdge(), _obs(obs) {
-    w = 1.0;
   }
 
   // 计算曲线模型误差
   virtual void computeError() override {
     const PointVertex *v = static_cast<const PointVertex *> (_vertices[0]);
     const double l = v->estimate();
-    _error(0, 0) = l * l + 1 / (1 + exp(w * ((l - _obs[1])*(l - _obs[1]) - 1.5*1.5)));
+    _error(0, 0) = 1*(-_obs[1] - l);
   }
 
   // 计算雅可比矩阵
   virtual void linearizeOplus() override {
     const PointVertex *v = static_cast<const PointVertex *> (_vertices[0]);
     const double l = v->estimate();
-    _jacobianOplusXi[0] = 2*l-1/pow(1+exp(w*(l*l-2.25)), 2.0)*exp(w*(l*l-2.25))*2*l;
+    _jacobianOplusXi(0) = -1;
   }
 
   virtual bool read(istream &in) {}
@@ -99,5 +99,31 @@ public:
 
 public:
   Eigen::Vector2d _obs;  // x 值， y 值为 _measurement
-  double w;
+};
+
+// 误差模型 模板参数：观测值维度，类型，连接顶点类型
+class Point2CenterLineEdge : public g2o::BaseUnaryEdge<1, double, PointVertex> {
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  Point2CenterLineEdge() : BaseUnaryEdge() {}
+
+  // 计算曲线模型误差
+  virtual void computeError() override {
+    const PointVertex *v = static_cast<const PointVertex *> (_vertices[0]);
+    const double l = v->estimate();
+    _error(0, 0) = 0.5*(l - _measurement);
+  }
+
+  // 计算雅可比矩阵
+  virtual void linearizeOplus() override {
+    const PointVertex *v = static_cast<const PointVertex *> (_vertices[0]);
+    const double l = v->estimate();
+    _jacobianOplusXi(0) = 0.5;
+  }
+
+  virtual bool read(istream &in) {}
+
+  virtual bool write(ostream &out) const {}
+
 };

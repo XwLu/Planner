@@ -49,19 +49,20 @@ void Planner::Init(Transform* tf,
 
   // 往图中增加边
   id = 0;
-  for (int i = 0; i < trajectory_.size() - 1; i++) {
+  for (int i = 0; i < trajectory_.size() - 1; ++i) {
     Point2PointEdge *edge = new Point2PointEdge();
     edge->setId(id);
     edge->setVertex(0, vs_[i]);                // 设置连接的顶点
     edge->setVertex(1, vs_[i+1]);
-    //edge->setMeasurement(y_data[i]);      // 观测数值
+    edge->setMeasurement(0.0);      // 观测数值
     edge->setInformation(Eigen::Matrix<double, 1, 1>::Identity() * 1 / (w_sigma * w_sigma)); // 信息矩阵：协方差矩阵之逆
     optimizer_->addEdge(edge);
     id++;
   }
 
   // 往图中增加边
-  for(size_t i = 0; i < trajectory_.size(); i++) {
+
+  for(size_t i = 0; i < trajectory_.size(); ++i) {
     for(auto obs : *obstacles_){
       if(fabs(obs.s() -  trajectory_[i].s()) < 2){
         Point2ObstacleEdge* edge = new Point2ObstacleEdge(Eigen::Vector2d(obs.s(), obs.l()));
@@ -75,6 +76,17 @@ void Planner::Init(Transform* tf,
     }
   }
 
+
+  // 往图中增加边
+  for(size_t i = 0; i < trajectory_.size(); ++i){
+    Point2CenterLineEdge* edge = new Point2CenterLineEdge();
+    edge->setId(id);
+    edge->setVertex(0, vs_[i]);
+    edge->setMeasurement(0.0);
+    edge->setInformation(Eigen::Matrix<double, 1, 1>::Identity() * 1 / (w_sigma * w_sigma)); // 信息矩阵：协方差矩阵之逆
+    optimizer_->addEdge(edge);
+    id++;
+  }
 
 }
 
@@ -93,5 +105,6 @@ void Planner::Run() {
     double l = v->estimate();
     cout<<"l: "<<l<<endl;
     trajectory_[id].set_l(l);
+    id++;
   }
 }
