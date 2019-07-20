@@ -45,7 +45,7 @@ class Point2PointEdge : public g2o::BaseBinaryEdge<1, double, PointVertex, Point
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  Point2PointEdge();
+  Point2PointEdge(){};
 
   // 计算误差
   virtual void computeError() override {
@@ -81,14 +81,14 @@ public:
   virtual void computeError() override {
     const PointVertex *v = static_cast<const PointVertex *> (_vertices[0]);
     const double l = v->estimate();
-    _error(0, 0) = - (_obs[1] - l) * (_obs[1] - l);
+    _error(0, 0) = 2 * l * l - (_obs[1] - l) * (_obs[1] - l);
   }
 
   // 计算雅可比矩阵
   virtual void linearizeOplus() override {
     const PointVertex *v = static_cast<const PointVertex *> (_vertices[0]);
     const double l = v->estimate();
-    _jacobianOplusXi[0] = - 2 * l + 2 * _obs[1];
+    _jacobianOplusXi[0] = 2 * _obs[1] + 2 * l;
   }
 
   virtual bool read(istream &in) {}

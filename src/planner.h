@@ -8,6 +8,7 @@
 #include "trajectory.h"
 #include "obstacle.h"
 #include "transform.h"
+#include "optimizer.h"
 
 class Planner{
 public:
@@ -24,6 +25,9 @@ private:
   vector<Obstacle>* obstacles_;
   Transform* tf_;
   double forward_length_;
+
+  g2o::SparseOptimizer* optimizer_;
+  vector<PointVertex*> vs_;
 };
 
 #endif //PLANNER_PLANNER_H
