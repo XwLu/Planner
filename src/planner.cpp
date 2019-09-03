@@ -61,11 +61,10 @@ void Planner::Init(Transform* tf,
   }
 
   // 往图中增加边
-
   for(size_t i = 0; i < trajectory_.size(); ++i) {
     for(auto obs : *obstacles_){
-      if(fabs(obs.s() -  trajectory_[i].s()) < 2){
-        Point2ObstacleEdge* edge = new Point2ObstacleEdge(Eigen::Vector2d(obs.s(), obs.l()));
+      if(fabs(obs.s() -  trajectory_[i].s()) <= 3.0){
+        Point2ObstacleEdge* edge = new Point2ObstacleEdge(Eigen::Vector2d(obs.s(), obs.l()), trajectory_[i].s());
         edge->setId(id);
         edge->setVertex(0, vs_[i]);
         //edge->setMeasurement();
@@ -75,7 +74,6 @@ void Planner::Init(Transform* tf,
       }
     }
   }
-
 
   // 往图中增加边
   for(size_t i = 0; i < trajectory_.size(); ++i){
@@ -103,7 +101,7 @@ void Planner::Run() {
   int id = 0;
   for(auto v : vs_){
     double l = v->estimate();
-    cout<<"l: "<<l<<endl;
+    //cout<<"l: "<<l<<endl;
     trajectory_[id].set_l(l);
     id++;
   }

@@ -45,7 +45,9 @@ class Point2PointEdge : public g2o::BaseBinaryEdge<1, double, PointVertex, Point
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  Point2PointEdge() : BaseBinaryEdge() {};
+  Point2PointEdge() : BaseBinaryEdge() {
+    _w = 1.2;
+  };
 
   // 计算误差
   virtual void computeError() override {
@@ -53,7 +55,7 @@ public:
     const PointVertex* v2 = static_cast<PointVertex*>(_vertices[1]);
     double l1 = v1->estimate();
     double l2 = v2->estimate();
-    _error(0, 0) = _measurement - 1*(l1 - l2);
+    _error(0, 0) = _measurement - _w*(l1 - l2);
   }
 
   //计算雅可比矩阵
@@ -62,13 +64,16 @@ public:
     PointVertex* v2 = static_cast<PointVertex*>(_vertices[1]);
     double l1 = v1->estimate();
     double l2 = v2->estimate();
-    _jacobianOplusXi(0, 0) = -1;
-    _jacobianOplusXi(1, 0) = +1;
+    _jacobianOplusXi(0, 0) = -_w;
+    _jacobianOplusXi(1, 0) = +_w;
   }
 
   virtual bool read(istream &in) {}
 
   virtual bool write(ostream &out) const {}
+
+public:
+  double _w;
 };
 
 // 误差模型 模板参数：观测值维度，类型，连接顶点类型
@@ -76,21 +81,31 @@ class Point2ObstacleEdge : public g2o::BaseUnaryEdge<1, double, PointVertex> {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  Point2ObstacleEdge(Eigen::Vector2d obs) : BaseUnaryEdge(), _obs(obs) {
+  Point2ObstacleEdge(Eigen::Vector2d obs, double point_s) : BaseUnaryEdge(), _obs(obs), _point_s(point_s) {
+    _dist_threshold = 2.5;
+    _w = 0.5;
   }
 
   // 计算曲线模型误差
   virtual void computeError() override {
     const PointVertex *v = static_cast<const PointVertex *> (_vertices[0]);
     const double l = v->estimate();
-    _error(0, 0) = 1*(-_obs[1] - l);
+    double dist = sqrt(pow(l - _obs[1], 2.0) + pow(_point_s - _obs[0], 2.0));
+    if(dist < _dist_threshold)
+      _error(0, 0) = (dist - _dist_threshold) / _w;
+    else
+      _error(0, 0) = 0.0;
   }
 
   // 计算雅可比矩阵
   virtual void linearizeOplus() override {
     const PointVertex *v = static_cast<const PointVertex *> (_vertices[0]);
     const double l = v->estimate();
-    _jacobianOplusXi(0) = -1;
+    double dist = sqrt(pow(l - _obs[1], 2.0) + pow(_point_s - _obs[0], 2.0));
+    if (dist < _dist_threshold)
+      _jacobianOplusXi(0) = (l - _obs[1])/(_w * dist);
+    else
+      _jacobianOplusXi(0) = 0.0;
   }
 
   virtual bool read(istream &in) {}
@@ -99,6 +114,9 @@ public:
 
 public:
   Eigen::Vector2d _obs;  // x 值， y 值为 _measurement
+  double _point_s;
+  double _dist_threshold;
+  double _w;
 };
 
 // 误差模型 模板参数：观测值维度，类型，连接顶点类型
@@ -106,24 +124,29 @@ class Point2CenterLineEdge : public g2o::BaseUnaryEdge<1, double, PointVertex> {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  Point2CenterLineEdge() : BaseUnaryEdge() {}
+  Point2CenterLineEdge() : BaseUnaryEdge() {
+    _w = 0.5;
+  }
 
   // 计算曲线模型误差
   virtual void computeError() override {
     const PointVertex *v = static_cast<const PointVertex *> (_vertices[0]);
     const double l = v->estimate();
-    _error(0, 0) = 0.5*(l - _measurement);
+    _error(0, 0) = _w*(l - _measurement);
   }
 
   // 计算雅可比矩阵
   virtual void linearizeOplus() override {
     const PointVertex *v = static_cast<const PointVertex *> (_vertices[0]);
     const double l = v->estimate();
-    _jacobianOplusXi(0) = 0.5;
+    _jacobianOplusXi(0) = _w;
   }
 
   virtual bool read(istream &in) {}
 
   virtual bool write(ostream &out) const {}
+
+public:
+  double _w;
 
 };
